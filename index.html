@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>魔方墙 - Web版</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 添加一些基本样式确保页面正常显示 */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            min-height: 100vh;
+            background-color: #f5f5f5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 菜单栏 -->
+        <div class="menu-bar">
+            <div class="menu-item">
+                <span>魔方墙游戏模式</span>
+                <div class="submenu">
+                    <div class="submenu-item" onclick="setCustomMode()">自定义模式</div>
+                    <div class="submenu-item" onclick="setChallengeMode()">闯关模式</div>
+                </div>
+            </div>
+            <div class="menu-item" onclick="startGame()">运行</div>
+            <div class="menu-item" onclick="stopGame()">停止</div>
+            <div class="menu-item">
+                <span>鼠标跟踪</span>
+                <div class="submenu">
+                    <div class="submenu-item" onclick="setMouseTracking(true)">跟踪</div>
+                    <div class="submenu-item" onclick="setMouseTracking(false)">不跟踪</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <span>提示</span>
+                <div class="submenu">
+                    <div class="submenu-item" onclick="setHints(true)">显示</div>
+                    <div class="submenu-item" onclick="setHints(false)">不显示</div>
+                </div>
+            </div>
+            <div class="menu-item">
+                <span>魔方存档</span>
+                <div class="submenu">
+                    <div class="submenu-item" onclick="saveGame()">存档</div>
+                    <div class="submenu-item" onclick="loadGame()">读档</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 游戏区域 -->
+        <div class="game-area">
+            <canvas id="leftPanel" class="panel"></canvas>
+            <canvas id="rightPanel" class="panel"></canvas>
+        </div>
+
+        <!-- 信息统计 -->
+        <div class="stats">
+            <div class="stat-item">
+                <label>点击错误次数：</label>
+                <span id="errorCount">0</span>
+            </div>
+            <div class="stat-item">
+                <label>已找到个数：</label>
+                <span id="foundCount">0</span>
+            </div>
+            <div class="stat-item">
+                <label>用时：</label>
+                <span id="timer">00:00:00</span>
+            </div>
+        </div>
+
+        <!-- 自定义模式对话框 -->
+        <div id="customModeDialog" class="modal" style="display: none;">
+            <div class="modal-content custom-mode-dialog">
+                <h2>自定义模式设置</h2>
+                <div class="form-group">
+                    <label>宽 度：</label>
+                    <input type="number" id="widthInput" min="10" max="200" value="20">
+                </div>
+                <div class="form-group">
+                    <label>高 度：</label>
+                    <input type="number" id="heightInput" min="10" max="200" value="20">
+                </div>
+                <div class="form-group">
+                    <label>魔方大小：</label>
+                    <input type="number" id="cellSizeInput" min="5" max="50" value="28">
+                </div>
+                <div class="form-group">
+                    <label>差异数量：</label>
+                    <input type="number" id="diffCountInput" min="1" value="5">
+                </div>
+                <div class="form-group color-scheme">
+                    <label>颜色方案</label>
+                    <div class="radio-group">
+                        <div class="radio-item">
+                            <input type="radio" id="scheme1" name="colorScheme" checked>
+                            <label for="scheme1">方案一</label>
+                        </div>
+                        <div class="radio-item">
+                            <input type="radio" id="scheme2" name="colorScheme">
+                            <label for="scheme2">方案二</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="button-group">
+                    <button onclick="applyCustomMode()">确 认</button>
+                    <button onclick="closeCustomModeDialog()">取 消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 闯关模式对话框 -->
+        <div id="challengeModeDialog" class="modal" style="display: none;">
+            <div class="modal-content">
+                <h2>闯关模式</h2>
+                <div class="challenge-info">
+                    <p>当前关卡：<span id="currentLevel">1</span></p>
+                    <p>目标：找出所有差异点</p>
+                </div>
+                <div class="button-group">
+                    <button onclick="closeChallengeDialog()">返回</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="magicwall.js"></script>
+</body>
+</html> 
