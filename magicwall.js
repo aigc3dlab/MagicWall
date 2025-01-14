@@ -1129,14 +1129,21 @@ class MagicWall {
     // 添加播放音效的方法
     playSound(soundName) {
         try {
-            if (this.sounds[soundName]) {
-                const sound = this.sounds[soundName];
+            const sound = this.sounds[soundName];
+            if (sound) {
+                // 确保音量正确
+                sound.volume = 0.5;
+                // 重置到开始
                 sound.currentTime = 0;
-                const playPromise = sound.play();
                 
+                const playPromise = sound.play();
                 if (playPromise !== undefined) {
                     playPromise.catch(error => {
                         console.error(`Error playing sound ${soundName}:`, error);
+                        // 如果是自动播放策略阻止，尝试在用户下一次交互时播放
+                        if (error.name === 'NotAllowedError') {
+                            this.unlockAudioContext();
+                        }
                     });
                 }
             } else {
@@ -1158,20 +1165,68 @@ class MagicWall {
 
         // 初始化每个音效
         for (const [name, path] of Object.entries(soundFiles)) {
-            this.sounds[name] = new Audio(path);
-            this.sounds[name].load();
-            this.sounds[name].volume = 0.5; // 设置音量为50%
+            // 使用已有的 audio 元素而不是创建新的
+            this.sounds[name] = document.getElementById(name + 'Sound');
             
-            // 添加加载错误处理
-            this.sounds[name].onerror = () => {
-                console.error(`Failed to load sound: ${path}`);
-            };
-            
-            // 添加加载成功日志
-            this.sounds[name].oncanplaythrough = () => {
-                console.log(`Sound loaded successfully: ${path}`);
-            };
+            if (this.sounds[name]) {
+                this.sounds[name].volume = 0.5;
+                
+                // 添加错误处理
+                this.sounds[name].onerror = () => {
+                    console.error(`Failed to load sound: ${path}`);
+                };
+                
+                // 添加加载成功日志
+                this.sounds[name].oncanplaythrough = () => {
+                    console.log(`Sound loaded successfully: ${path}`);
+                };
+            } else {
+                console.error(`Audio element not found: ${name}Sound`);
+            }
         }
+
+        // 添加用户交互音频解锁
+        this.unlockAudioContext();
+    }
+
+    // 添加音频解锁方法
+    unlockAudioContext() {
+        // 创建一个空的音频上下文
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // 在第一次用户交互时解锁音频
+        const unlockAudio = () => {
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            
+            // 尝试播放所有音效一次（音量为0）
+            Object.values(this.sounds).forEach(sound => {
+                if (sound) {
+                    sound.volume = 0;
+                    const playPromise = sound.play();
+                    if (playPromise) {
+                        playPromise.then(() => {
+                            sound.pause();
+                            sound.currentTime = 0;
+                            sound.volume = 0.5;
+                        }).catch(error => {
+                            console.log('Audio play failed:', error);
+                        });
+                    }
+                }
+            });
+
+            // 移除事件监听器
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('keydown', unlockAudio);
+        };
+
+        // 添加用户交互事件监听器
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
+        document.addEventListener('keydown', unlockAudio);
     }
 }
 
