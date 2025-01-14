@@ -17,10 +17,18 @@
             background-color: #f5f5f5;
         }
     </style>
-    <audio id="correctSound" src="sounds/correct.mp3" preload="auto"></audio>
-    <audio id="wrongSound" src="sounds/wrong.mp3" preload="auto"></audio>
-    <audio id="startSound" src="sounds/start.mp3" preload="auto"></audio>
-    <audio id="completeSound" src="sounds/complete.mp3" preload="auto"></audio>
+    <audio id="correctSound" preload="auto">
+        <source src="./sounds/correct.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wrongSound" preload="auto">
+        <source src="./sounds/wrong.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="startSound" preload="auto">
+        <source src="./sounds/start.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="completeSound" preload="auto">
+        <source src="./sounds/complete.mp3" type="audio/mpeg">
+    </audio>
 </head>
 <body>
     <div class="container">
