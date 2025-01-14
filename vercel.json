@@ -1,24 +1,18 @@
 {
   "version": 2,
   "builds": [
-    { "src": "*.html", "use": "@vercel/static" },
-    { "src": "*.css", "use": "@vercel/static" },
-    { "src": "*.js", "use": "@vercel/static" },
-    { "src": "sounds/*.mp3", "use": "@vercel/static" }
+    { "src": "**/*", "use": "@vercel/static" }
   ],
   "routes": [
-    { "src": "/sounds/(.*)", "dest": "/sounds/$1" },
-    { "src": "/(.*)", "dest": "/$1" }
-  ],
-  "headers": [
     {
-      "source": "/sounds/(.*).mp3",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "audio/mpeg"
-        }
-      ]
-    }
+      "src": "/sounds/(.*)",
+      "headers": {
+        "cache-control": "public, max-age=0, must-revalidate",
+        "content-type": "audio/mpeg"
+      },
+      "continue": true
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/$1" }
   ]
 } 
