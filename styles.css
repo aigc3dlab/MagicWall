@@ -1,0 +1,519 @@
+/* 整体样式优化 */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    min-height: 100vh;
+    color: #ffffff;
+}
+
+.container {
+    max-width: none;
+    min-height: 100vh;
+    padding: 20px;
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    color: #ffffff;
+}
+
+/* 菜单栏样式优化 */
+.menu-bar {
+    width: 90%;
+    max-width: 1800px;
+    min-width: 800px;
+    margin: 0 auto 20px auto;
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    z-index: 1000;
+    position: relative;
+}
+
+/* 菜单项样式 */
+.menu-item {
+    position: relative;
+    cursor: pointer;
+    padding: 8px 15px;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.9);
+    transition: all 0.3s ease;
+    z-index: 1001;
+}
+
+/* 子菜单样式 */
+.submenu {
+    display: none;
+    position: absolute;
+    top: calc(100% - 5px);
+    left: 0;
+    min-width: 150px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    padding: 8px 0;
+    z-index: 1002;
+}
+
+/* 添加一个透明的连接区域 */
+.menu-item::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 100%;
+    width: 100%;
+    height: 10px;
+    background: transparent;
+}
+
+/* 子菜单项样式 */
+.submenu-item {
+    padding: 10px 20px;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+/* 悬停效果 */
+.menu-item:hover {
+    background: rgba(147, 112, 219, 0.2);
+}
+
+.menu-item:hover .submenu {
+    display: block;
+}
+
+.submenu-item:hover {
+    background: rgba(147, 112, 219, 0.3);
+}
+
+/* 移除之前的margin-top */
+.submenu {
+    margin-top: 0;
+}
+
+/* 确保子菜单不会被其他元素遮挡 */
+.menu-item {
+    position: relative;
+}
+
+/* 游戏区域样式优化 */
+.game-area {
+    width: 90%;
+    max-width: 1800px;
+    min-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    z-index: 1;
+    position: relative;
+}
+
+.panel {
+    width: 800px;
+    height: 800px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+/* 统计信息样式优化 */
+.stats {
+    width: 90%;
+    max-width: 1800px;
+    min-width: 800px;
+    margin: 20px auto;
+    padding: 15px 25px;
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    z-index: 1;
+    position: relative;
+}
+
+.stat-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-item label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stat-item span {
+    font-weight: bold;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 弹窗容器样式 */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+/* 弹窗内容样式 */
+.modal-content {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 12px;
+    padding: 25px;
+    min-width: 300px;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input[type="number"] {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    border-radius: 6px;
+    padding: 8px 12px;
+}
+
+.radio-group {
+    display: flex;
+    gap: 15px;
+}
+
+.button-group {
+    margin-top: 20px;
+    text-align: right;
+}
+
+.button-group button {
+    padding: 8px 20px;
+    margin-left: 10px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.button-group button:hover {
+    background: #0056b3;
+}
+
+/* 添加到现有样式的末尾 */
+.challenge-info {
+    text-align: left;
+    margin: 20px 0;
+    font-size: 16px;
+}
+
+.challenge-info p {
+    margin: 10px 0;
+}
+
+/* 游戏状态指示器 */
+.game-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 20px;
+    background: rgba(0,0,0,0.8);
+    color: white;
+    border-radius: 4px;
+    display: none;
+}
+
+/* 提示线样式 */
+.hint-line {
+    position: absolute;
+    background: rgba(255,255,255,0.5);
+    pointer-events: none;
+}
+
+/* 自定义模式对话框样式 */
+.custom-mode-dialog {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.custom-mode-dialog h2 {
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.custom-mode-dialog .form-group {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.custom-mode-dialog .form-group label {
+    width: 80px;
+    text-align: right;
+    margin-right: 10px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.custom-mode-dialog .form-group input[type="number"] {
+    width: 150px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.custom-mode-dialog .color-scheme {
+    margin-top: 20px;
+}
+
+.custom-mode-dialog .radio-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-left: 90px;
+}
+
+.custom-mode-dialog .radio-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.custom-mode-dialog .button-group {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.custom-mode-dialog button {
+    padding: 5px 20px;
+    background: #e0e0e0;
+    border: 1px solid #999;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.custom-mode-dialog button:hover {
+    background: #d0d0d0;
+}
+
+/* 按钮样式优化 */
+button {
+    background: linear-gradient(135deg, 
+        rgba(147, 112, 219, 0.8),  /* 浅紫色 */
+        rgba(106, 90, 205, 0.9)    /* 深紫色 */
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+button:hover {
+    background: linear-gradient(135deg,
+        rgba(106, 90, 205, 0.9),   /* 深紫色 */
+        rgba(147, 112, 219, 0.8)   /* 浅紫色 */
+    );
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(147, 112, 219, 0.3);
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* 修改菜单显示 */
+.menu-item:hover .submenu {
+    display: block;
+    z-index: 1002;
+}
+
+/* 修改输入框样式 */
+.custom-mode-dialog .form-group input[type="number"] {
+    width: 150px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 修改单选按钮组样式 */
+.radio-group {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.radio-item label {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* 统一按钮样式 */
+.custom-mode-dialog button,
+.button-group button {
+    background: linear-gradient(135deg, 
+        rgba(147, 112, 219, 0.8),
+        rgba(106, 90, 205, 0.9)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.custom-mode-dialog button:hover,
+.button-group button:hover {
+    background: linear-gradient(135deg,
+        rgba(106, 90, 205, 0.9),
+        rgba(147, 112, 219, 0.8)
+    );
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(147, 112, 219, 0.3);
+}
+
+/* 确保画布不会被样式影响 */
+canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+
+/* 自定义弹窗样式 */
+.custom-alert {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3000;
+}
+
+.custom-alert-content {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    border-radius: 12px;
+    padding: 25px;
+    min-width: 300px;
+    text-align: center;
+}
+
+.custom-alert-content p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 16px;
+    margin: 0 0 20px 0;
+    white-space: pre-line;
+}
+
+.custom-alert-content button {
+    background: linear-gradient(135deg, 
+        rgba(147, 112, 219, 0.8),
+        rgba(106, 90, 205, 0.9)
+    );
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    padding: 10px 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 14px;
+}
+
+.custom-alert-content button:hover {
+    background: linear-gradient(135deg,
+        rgba(106, 90, 205, 0.9),
+        rgba(147, 112, 219, 0.8)
+    );
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(147, 112, 219, 0.3);
+}
+
+.custom-alert-content button:active {
+    transform: translateY(0);
+}
+
+/* 标题样式 */
+h1 {
+    text-align: center;
+    margin: 0 0 20px 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 24px;
+}
+
+/* 添加响应式布局 */
+@media screen and (max-width: 1200px) {
+    .menu-bar,
+    .game-area,
+    .stats {
+        width: 95%;
+    }
+}
+
+@media screen and (max-width: 900px) {
+    .menu-bar,
+    .game-area,
+    .stats {
+        min-width: 600px;
+    }
+} 
