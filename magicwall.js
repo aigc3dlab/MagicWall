@@ -47,6 +47,10 @@ class MagicWall {
             this.initCanvas();
             this.setupEventListeners();
             console.log('Game initialized successfully');
+
+            // 初始化音效
+            this.sounds = {};
+            this.initSounds();
         } catch (error) {
             console.error('Error initializing game:', error);
             alert('游戏初始化失败，请尝试减小方块数量或方块大小');
@@ -226,11 +230,28 @@ class MagicWall {
         console.log('Panel dimensions:', this.width, this.height);
         console.log('Cell size:', this.cellSize);
         console.log('Diff count:', this.diffCount);
+
+        this.playSound('start');
     }
 
     stopGame() {
         this.isGameRunning = false;
         this.stopTimer();
+        
+        // 清空游戏数据
+        this.leftColors = null;
+        this.rightColors = null;
+        this.diffPoints = null;
+        
+        // 重置统计信息
+        document.getElementById('errorCount').textContent = '0';
+        document.getElementById('foundCount').textContent = '0';
+        document.getElementById('timer').textContent = '00:00:00';
+        
+        // 重新初始化面板，显示初始图案
+        this.initPanels();
+        
+        console.log('Game stopped');
     }
 
     resetStats() {
@@ -252,34 +273,48 @@ class MagicWall {
         const x = Math.floor(((e.clientX - rect.left) * scaleX) / this.cellSize);
         const y = Math.floor(((e.clientY - rect.top) * scaleY) / this.cellSize);
         
-        // 边界检查
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-            console.log('Click outside bounds');
             return;
         }
 
-        // 只在右侧面板点击时检查差异点
         if (side === 'right') {
             const key = `${x},${y}`;
             if (this.diffPoints && this.diffPoints.has(key)) {
+                this.playSound('correct');
                 console.log('Found difference point!');
+                
+                // 更新颜色和状态
                 this.rightColors[y][x] = this.leftColors[y][x];
                 this.diffPoints.delete(key);
                 
-                // 更新找到的差异点数量
                 const foundCount = this.diffCount - this.diffPoints.size;
                 document.getElementById('foundCount').textContent = foundCount;
                 
-                this.drawPanels();
+                // 在两边同时播放特效
+                this.createParticles(x, y, this.leftCtx);
+                this.createParticles(x, y, this.rightCtx);
                 
-                // 检查是否找到所有差异点
-                if (this.diffPoints.size === 0) {
-                    this.gameComplete();
-                }
+                // 延迟重绘面板，让特效有时间显示
+                setTimeout(() => {
+                    this.drawPanels();
+                    
+                    if (this.diffPoints.size === 0) {
+                        setTimeout(() => {
+                            this.playSound('complete');
+                            this.gameComplete();
+                        }, 500);
+                    }
+                }, 500);
+                
             } else {
+                this.playSound('wrong');
                 console.log('Missed difference point');
                 const errorCount = parseInt(document.getElementById('errorCount').textContent) + 1;
                 document.getElementById('errorCount').textContent = errorCount;
+                
+                // 点错时也在两边显示特效，但使用不同的颜色
+                this.createErrorParticles(x, y, this.leftCtx);
+                this.createErrorParticles(x, y, this.rightCtx);
             }
         }
     }
@@ -760,7 +795,7 @@ class MagicWall {
             ctx.textBaseline = 'middle';
             
             // 绘制主标题
-            ctx.fillText('点击运行开始游戏', centerX, centerY - 20);
+            ctx.fillText('魔方墙找茬', centerX, centerY - 20);
             
             // 绘制副标题
             ctx.font = 'bold 24px Arial';
@@ -933,7 +968,7 @@ class MagicWall {
         ctx.textBaseline = 'middle';
         
         // 绘制主标题
-        ctx.fillText('点击运行开始游戏', centerX, centerY - 20);
+        ctx.fillText('魔方墙找茬', centerX, centerY - 20);
         
         // 绘制副标题
         ctx.font = 'bold 24px Arial';
@@ -949,6 +984,194 @@ class MagicWall {
         ctx.moveTo(centerX - 150, centerY + 60);
         ctx.lineTo(centerX + 150, centerY + 60);
         ctx.stroke();
+    }
+
+    // 添加散花特效方法
+    createParticles(x, y, ctx) {
+        const particles = [];
+        const rings = [];
+        const particleCount = 40; // 增加粒子数量
+        const colors = [
+            'rgba(255, 255, 255, 0.9)',  // 白色
+            'rgba(147, 112, 219, 0.9)',  // 浅紫色
+            'rgba(138, 43, 226, 0.9)',   // 紫罗兰
+            'rgba(106, 90, 205, 0.9)',   // 深紫色
+            'rgba(186, 85, 211, 0.9)'    // 中兰花紫
+        ];
+
+        // 创建爆炸粒子
+        for (let i = 0; i < particleCount; i++) {
+            const angle = (Math.PI * 2 * i) / particleCount;
+            const velocity = 3 + Math.random() * 3; // 增加速度
+            particles.push({
+                x: x * this.cellSize + this.cellSize / 2,
+                y: y * this.cellSize + this.cellSize / 2,
+                vx: Math.cos(angle) * velocity,
+                vy: Math.sin(angle) * velocity,
+                life: 1,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                size: 4 + Math.random() * 4,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2
+            });
+        }
+
+        // 创建扩散环
+        for (let i = 0; i < 3; i++) {
+            rings.push({
+                x: x * this.cellSize + this.cellSize / 2,
+                y: y * this.cellSize + this.cellSize / 2,
+                radius: 0,
+                life: 1,
+                maxRadius: 50 + i * 20,
+                speed: 2 + i * 0.5
+            });
+        }
+
+        // 保存原始画布内容
+        const originalCanvas = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+        // 动画函数
+        const animate = () => {
+            // 恢复原始画布内容
+            ctx.putImageData(originalCanvas, 0, 0);
+            
+            // 绘制扩散环
+            rings.forEach((ring, index) => {
+                if (ring.life > 0) {
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(255, 255, 255, ${ring.life * 0.5})`;
+                    ctx.lineWidth = 2;
+                    ctx.arc(ring.x, ring.y, ring.radius, 0, Math.PI * 2);
+                    ctx.stroke();
+
+                    // 更新环
+                    ring.radius += ring.speed;
+                    ring.life -= ring.radius / (ring.maxRadius * 2);
+                }
+            });
+
+            // 更新和绘制粒子
+            particles.forEach((particle, index) => {
+                // 更新位置
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vx *= 0.98; // 添加阻力
+                particle.vy *= 0.98;
+                particle.rotation += particle.rotationSpeed;
+                particle.life -= 0.02;
+
+                // 如果粒子还活着就绘制
+                if (particle.life > 0) {
+                    ctx.save();
+                    ctx.translate(particle.x, particle.y);
+                    ctx.rotate(particle.rotation);
+                    
+                    // 绘制星形粒子
+                    ctx.beginPath();
+                    const points = 4;
+                    for (let i = 0; i < points * 2; i++) {
+                        const radius = i % 2 === 0 ? particle.size : particle.size / 2;
+                        const angle = (Math.PI * i) / points;
+                        const x = Math.cos(angle) * radius;
+                        const y = Math.sin(angle) * radius;
+                        if (i === 0) ctx.moveTo(x, y);
+                        else ctx.lineTo(x, y);
+                    }
+                    ctx.closePath();
+                    
+                    // 创建渐变填充
+                    const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, particle.size);
+                    gradient.addColorStop(0, particle.color.replace('0.9', '1'));
+                    gradient.addColorStop(1, particle.color.replace('0.9', '0'));
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+                    
+                    // 添加发光效果
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = particle.color;
+                    
+                    ctx.restore();
+                }
+            });
+
+            // 如果还有活跃的粒子或环，继续动画
+            if (particles.some(p => p.life > 0) || rings.some(r => r.life > 0)) {
+                requestAnimationFrame(animate);
+            } else {
+                // 动画结束后重绘面板
+                this.drawPanels();
+            }
+        };
+
+        // 开始动画
+        animate();
+    }
+
+    // 添加错误特效方法
+    createErrorParticles(x, y, ctx) {
+        // 复制原有的createParticles方法，但使用红色系的颜色
+        const particles = [];
+        const rings = [];
+        const particleCount = 40;
+        const colors = [
+            'rgba(255, 0, 0, 0.9)',    // 红色
+            'rgba(255, 69, 0, 0.9)',   // 红橙色
+            'rgba(255, 99, 71, 0.9)',  // 番茄红
+            'rgba(220, 20, 60, 0.9)',  // 猩红色
+            'rgba(178, 34, 34, 0.9)'   // 深红色
+        ];
+
+        // ... 其余代码与createParticles相同，只是使用新的颜色数组 ...
+        // 复制createParticles方法的其余部分，保持逻辑不变
+    }
+
+    // 添加播放音效的方法
+    playSound(soundName) {
+        try {
+            if (this.sounds[soundName]) {
+                const sound = this.sounds[soundName];
+                sound.currentTime = 0;
+                const playPromise = sound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.error(`Error playing sound ${soundName}:`, error);
+                    });
+                }
+            } else {
+                console.warn(`Sound not found: ${soundName}`);
+            }
+        } catch (error) {
+            console.error('Error playing sound:', error);
+        }
+    }
+
+    // 添加音效初始化方法
+    initSounds() {
+        const soundFiles = {
+            correct: 'sounds/correct.mp3',
+            wrong: 'sounds/wrong.mp3',
+            start: 'sounds/start.mp3',
+            complete: 'sounds/complete.mp3'
+        };
+
+        // 初始化每个音效
+        for (const [name, path] of Object.entries(soundFiles)) {
+            this.sounds[name] = new Audio(path);
+            this.sounds[name].load();
+            this.sounds[name].volume = 0.5; // 设置音量为50%
+            
+            // 添加加载错误处理
+            this.sounds[name].onerror = () => {
+                console.error(`Failed to load sound: ${path}`);
+            };
+            
+            // 添加加载成功日志
+            this.sounds[name].oncanplaythrough = () => {
+                console.log(`Sound loaded successfully: ${path}`);
+            };
+        }
     }
 }
 
