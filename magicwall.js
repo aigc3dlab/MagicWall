@@ -115,11 +115,15 @@ class MagicWall {
             this.leftCtx.clearRect(0, 0, panelWidth, panelHeight);
             this.rightCtx.clearRect(0, 0, panelWidth, panelHeight);
 
-            // 重新生成颜色
-            this.generateColors();
-            
-            // 重新绘制面板
-            this.drawPanels();
+            // 在游戏开始前绘制初始图案
+            if (!this.isGameRunning) {
+                this.drawInitialPattern();
+            } else {
+                // 重新生成颜色
+                this.generateColors();
+                // 重新绘制面板
+                this.drawPanels();
+            }
 
             return true;
         } catch (error) {
@@ -653,6 +657,298 @@ class MagicWall {
         alertBox.appendChild(okButton);
         alertContainer.appendChild(alertBox);
         document.body.appendChild(alertContainer);
+    }
+
+    // 添加绘制初始图案的方法
+    drawInitialPattern() {
+        // 随机选择一个图案
+        const patterns = [this.drawHexagonPattern, this.drawCirclePattern, 
+                         this.drawSquarePattern, this.drawStarPattern];
+        const randomPattern = patterns[Math.floor(Math.random() * patterns.length)];
+        randomPattern.call(this);
+    }
+
+    // 1. 六边形蜂窝图案
+    drawHexagonPattern() {
+        const colors = [
+            'rgba(147, 112, 219, 0.8)',  // 浅紫色
+            'rgba(138, 43, 226, 0.8)',   // 紫罗兰
+            'rgba(106, 90, 205, 0.9)',   // 深紫色
+            'rgba(153, 50, 204, 0.8)',   // 深兰花紫
+            'rgba(186, 85, 211, 0.8)'    // 中兰花紫
+        ];
+
+        const centerX = (this.width * this.cellSize) / 2;
+        const centerY = (this.height * this.cellSize) / 2;
+
+        [this.leftCtx, this.rightCtx].forEach(ctx => {
+            ctx.save();
+            
+            // 设置背景
+            ctx.fillStyle = 'rgba(28, 27, 34, 1)';
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            // 六边形参数
+            const hexSize = this.cellSize * 2;
+            const hexHeight = hexSize * Math.sqrt(3);
+            const hexWidth = hexSize * 2;
+            const hexVertical = hexHeight * 0.75;
+
+            // 绘制六边形网格
+            for (let row = -2; row < this.height + 2; row++) {
+                for (let col = -2; col < this.width + 2; col++) {
+                    const x = col * hexWidth * 0.75;
+                    const y = row * hexVertical;
+                    const offset = (row % 2) * (hexWidth * 0.375);
+
+                    // 计算到中心的距离
+                    const dx = x + offset - centerX;
+                    const dy = y - centerY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    // 创建渐变
+                    const gradient = ctx.createRadialGradient(
+                        x + offset, y, 0,
+                        x + offset, y, hexSize
+                    );
+
+                    const colorIndex = Math.floor((distance / (hexSize * 2)) % colors.length);
+                    const nextColorIndex = (colorIndex + 1) % colors.length;
+
+                    gradient.addColorStop(0, colors[colorIndex]);
+                    gradient.addColorStop(1, colors[nextColorIndex]);
+
+                    // 绘制六边形
+                    ctx.beginPath();
+                    for (let i = 0; i < 6; i++) {
+                        const angle = (i * Math.PI) / 3;
+                        const xPos = x + offset + hexSize * Math.cos(angle);
+                        const yPos = y + hexSize * Math.sin(angle);
+                        if (i === 0) {
+                            ctx.moveTo(xPos, yPos);
+                        } else {
+                            ctx.lineTo(xPos, yPos);
+                        }
+                    }
+                    ctx.closePath();
+                    ctx.fillStyle = gradient;
+                    ctx.fill();
+
+                    // 添加发光效果
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+
+            // 添加中心光晕效果
+            const centerGradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, this.cellSize * 10
+            );
+            centerGradient.addColorStop(0, 'rgba(255, 255, 255, 0.2)');
+            centerGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+            centerGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = centerGradient;
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            // 添加文字和装饰
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.font = 'bold 28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // 绘制主标题
+            ctx.fillText('点击运行开始游戏', centerX, centerY - 20);
+            
+            // 绘制副标题
+            ctx.font = 'bold 24px Arial';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            ctx.fillText('AIGC_3D视觉实验室', centerX, centerY + 30);
+
+            // 添加装饰线条
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(centerX - 150, centerY - 50);
+            ctx.lineTo(centerX + 150, centerY - 50);
+            ctx.moveTo(centerX - 150, centerY + 60);
+            ctx.lineTo(centerX + 150, centerY + 60);
+            ctx.stroke();
+
+            ctx.restore();
+        });
+    }
+
+    // 2. 同心圆图案
+    drawCirclePattern() {
+        const colors = [
+            'rgba(75, 0, 130, 0.8)',     // 靛蓝
+            'rgba(147, 112, 219, 0.8)',  // 浅紫色
+            'rgba(138, 43, 226, 0.8)',   // 紫罗兰
+            'rgba(106, 90, 205, 0.9)',   // 深紫色
+            'rgba(153, 50, 204, 0.8)'    // 深兰花紫
+        ];
+
+        const centerX = (this.width * this.cellSize) / 2;
+        const centerY = (this.height * this.cellSize) / 2;
+
+        [this.leftCtx, this.rightCtx].forEach(ctx => {
+            ctx.save();
+            
+            // 设置背景
+            ctx.fillStyle = 'rgba(28, 27, 34, 1)';
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            // 绘制同心圆
+            const maxRadius = Math.max(centerX, centerY) * 1.5;
+            for (let radius = maxRadius; radius > 0; radius -= this.cellSize) {
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                const colorIndex = Math.floor((radius / this.cellSize) % colors.length);
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fill();
+            }
+
+            // 添加发光效果
+            const gradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, maxRadius
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            this.drawText(ctx, centerX, centerY);
+            ctx.restore();
+        });
+    }
+
+    // 3. 方形螺旋图案
+    drawSquarePattern() {
+        const colors = [
+            'rgba(147, 112, 219, 0.8)',  // 浅紫色
+            'rgba(138, 43, 226, 0.8)',   // 紫罗兰
+            'rgba(106, 90, 205, 0.9)',   // 深紫色
+            'rgba(153, 50, 204, 0.8)',   // 深兰花紫
+            'rgba(186, 85, 211, 0.8)'    // 中兰花紫
+        ];
+
+        const centerX = (this.width * this.cellSize) / 2;
+        const centerY = (this.height * this.cellSize) / 2;
+
+        [this.leftCtx, this.rightCtx].forEach(ctx => {
+            ctx.save();
+            
+            // 设置背景
+            ctx.fillStyle = 'rgba(28, 27, 34, 1)';
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            // 绘制方形螺旋
+            const size = Math.min(this.width, this.height) * this.cellSize / 2;
+            for (let i = size; i > 0; i -= this.cellSize) {
+                ctx.beginPath();
+                ctx.rect(centerX - i, centerY - i, i * 2, i * 2);
+                const colorIndex = Math.floor((i / this.cellSize) % colors.length);
+                ctx.fillStyle = colors[colorIndex];
+                ctx.fill();
+                
+                // 旋转方形
+                ctx.translate(centerX, centerY);
+                ctx.rotate(Math.PI / 32);
+                ctx.translate(-centerX, -centerY);
+            }
+
+            this.drawText(ctx, centerX, centerY);
+            ctx.restore();
+        });
+    }
+
+    // 4. 星形图案
+    drawStarPattern() {
+        const colors = [
+            'rgba(147, 112, 219, 0.8)',  // 浅紫色
+            'rgba(138, 43, 226, 0.8)',   // 紫罗兰
+            'rgba(106, 90, 205, 0.9)',   // 深紫色
+            'rgba(153, 50, 204, 0.8)',   // 深兰花紫
+            'rgba(186, 85, 211, 0.8)'    // 中兰花紫
+        ];
+
+        const centerX = (this.width * this.cellSize) / 2;
+        const centerY = (this.height * this.cellSize) / 2;
+
+        [this.leftCtx, this.rightCtx].forEach(ctx => {
+            ctx.save();
+            
+            // 设置背景
+            ctx.fillStyle = 'rgba(28, 27, 34, 1)';
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            // 绘制多层星形
+            const maxRadius = Math.max(centerX, centerY);
+            for (let radius = maxRadius; radius > 0; radius -= this.cellSize * 2) {
+                this.drawStar(ctx, centerX, centerY, 8, radius, radius/2, 
+                             colors[Math.floor((radius / this.cellSize) % colors.length)]);
+            }
+
+            // 添加发光效果
+            const gradient = ctx.createRadialGradient(
+                centerX, centerY, 0,
+                centerX, centerY, maxRadius
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.1)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, this.width * this.cellSize, this.height * this.cellSize);
+
+            this.drawText(ctx, centerX, centerY);
+            ctx.restore();
+        });
+    }
+
+    // 辅助方法：绘制星形
+    drawStar(ctx, cx, cy, spikes, outerRadius, innerRadius, color) {
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - outerRadius);
+        for (let i = 0; i < spikes * 2; i++) {
+            const radius = i % 2 === 0 ? outerRadius : innerRadius;
+            const angle = (Math.PI * i) / spikes;
+            ctx.lineTo(cx + Math.sin(angle) * radius, cy - Math.cos(angle) * radius);
+        }
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+
+    // 辅助方法：绘制文字
+    drawText(ctx, centerX, centerY) {
+        // 添加文字和装饰
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.font = 'bold 28px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        // 绘制主标题
+        ctx.fillText('点击运行开始游戏', centerX, centerY - 20);
+        
+        // 绘制副标题
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.fillText('AIGC_3D视觉实验室', centerX, centerY + 30);
+
+        // 添加装饰线条
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(centerX - 150, centerY - 50);
+        ctx.lineTo(centerX + 150, centerY - 50);
+        ctx.moveTo(centerX - 150, centerY + 60);
+        ctx.lineTo(centerX + 150, centerY + 60);
+        ctx.stroke();
     }
 }
 
