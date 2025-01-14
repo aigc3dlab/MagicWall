@@ -1131,13 +1131,29 @@ class MagicWall {
         try {
             if (this.sounds[soundName]) {
                 const sound = this.sounds[soundName];
+                
+                // 重置音频
                 sound.currentTime = 0;
+                
+                // 确保音量正确
+                sound.volume = 0.5;
+                
+                console.log(`Attempting to play sound: ${soundName}`);
+                
+                // 播放音频
                 const playPromise = sound.play();
                 
                 if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.error(`Error playing sound ${soundName}:`, error);
-                    });
+                    playPromise
+                        .then(() => {
+                            console.log(`${soundName}: Playing successfully`);
+                        })
+                        .catch(error => {
+                            console.error(`Error playing sound ${soundName}:`, error);
+                            // 尝试重新加载并播放
+                            sound.load();
+                            sound.play().catch(e => console.error('Retry failed:', e));
+                        });
                 }
             } else {
                 console.warn(`Sound not found: ${soundName}`);
@@ -1150,33 +1166,67 @@ class MagicWall {
     // 添加音效初始化方法
     initSounds() {
         const soundFiles = {
-            correct: '/sounds/correct.mp3',  // 添加前导斜杠
-            wrong: '/sounds/wrong.mp3',
-            start: '/sounds/start.mp3',
-            complete: '/sounds/complete.mp3'
+            correct: './sounds/correct.mp3',
+            wrong: './sounds/wrong.mp3',
+            start: './sounds/start.mp3',
+            complete: './sounds/complete.mp3'
         };
 
         // 初始化每个音效
         for (const [name, path] of Object.entries(soundFiles)) {
             try {
-                this.sounds[name] = new Audio(path);
-                this.sounds[name].load();
-                this.sounds[name].volume = 0.5;
+                console.log(`Initializing sound: ${name} from path: ${path}`);
                 
-                // 添加加载错误处理
-                this.sounds[name].onerror = (e) => {
+                const audio = new Audio();
+                
+                // 添加所有可能的事件监听器来帮助调试
+                audio.addEventListener('loadstart', () => console.log(`${name}: Loading started`));
+                audio.addEventListener('durationchange', () => console.log(`${name}: Duration changed to: ${audio.duration}`));
+                audio.addEventListener('loadeddata', () => console.log(`${name}: Data loaded`));
+                audio.addEventListener('canplay', () => console.log(`${name}: Can play`));
+                audio.addEventListener('canplaythrough', () => console.log(`${name}: Can play through`));
+                
+                // 错误处理
+                audio.addEventListener('error', (e) => {
+                    const error = audio.error;
+                    console.error(`Error loading sound ${name}:`, {
+                        code: error.code,
+                        message: error.message,
+                        path: path
+                    });
+                });
+
+                // 设置音频属性
+                audio.preload = 'auto';
+                audio.volume = 0.5;
+                
+                // 在设置 src 之前添加错误处理
+                audio.onerror = (e) => {
                     console.error(`Failed to load sound: ${path}`, e);
                 };
-                
-                // 添加加载成功日志
-                this.sounds[name].oncanplaythrough = () => {
-                    console.log(`Sound loaded successfully: ${path}`);
-                };
 
-                // 添加播放错误处理
-                this.sounds[name].addEventListener('error', (e) => {
-                    console.error(`Error with sound ${name}:`, e);
-                });
+                // 设置音频源
+                audio.src = path;
+                
+                // 强制加载
+                audio.load();
+
+                // 存储音频对象
+                this.sounds[name] = audio;
+
+                // 尝试预加载
+                const playPromise = audio.play();
+                if (playPromise !== undefined) {
+                    playPromise
+                        .then(() => {
+                            console.log(`${name}: Successfully preloaded`);
+                            audio.pause();
+                            audio.currentTime = 0;
+                        })
+                        .catch(error => {
+                            console.log(`${name}: Preload failed (this is normal for some browsers)`, error);
+                        });
+                }
 
             } catch (error) {
                 console.error(`Error initializing sound ${name}:`, error);
