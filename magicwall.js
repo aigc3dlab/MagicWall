@@ -6,10 +6,19 @@ class MagicWall {
             this.height = 20;     // 高度：20
             this.cellSize = 28;   // 魔方大小：28
             this.diffCount = 5;   // 差异数量：5
+            this.isChallengeModeActive = false;
+            this.currentLevel = 1;
+            this.maxUnlockedLevel = 1;
             this.isCustomMode = true;
             this.isMouseTracking = false;
             this.showHints = false;
+            this.cheatClickCount = 0;  // 记录提示下的点击次数
             this.isGameRunning = false;
+            
+            // 添加一个标记来跟踪弹窗状态
+            this.isShowingRecords = false;
+            // 添加一个标记来跟踪开始提示弹窗状态
+            this.isShowingStartAlert = false;
             
             // 颜色方案 - 对调方案一和方案二
             this.colorScheme1 = [
@@ -51,6 +60,17 @@ class MagicWall {
             // 初始化音效
             this.sounds = {};
             this.initSounds();
+
+            this.timerInterval = null;
+            this.startTime = null;
+
+            // 添加关卡记录数组
+            this.levelRecords = Array(20).fill().map(() => ({
+                completed: false,
+                time: 0,
+                errors: 0,
+                cheats: 0
+            }));
         } catch (error) {
             console.error('Error initializing game:', error);
             alert('游戏初始化失败，请尝试减小方块数量或方块大小');
@@ -109,11 +129,15 @@ class MagicWall {
             this.rightPanel.width = panelWidth;
             this.rightPanel.height = panelHeight;
 
-            // 设置画布样式尺寸
+            // 设置画布样式尺寸，确保完全匹配
             this.leftPanel.style.width = `${panelWidth}px`;
             this.leftPanel.style.height = `${panelHeight}px`;
             this.rightPanel.style.width = `${panelWidth}px`;
             this.rightPanel.style.height = `${panelHeight}px`;
+            this.leftPanel.style.display = 'block';  // 使用块级显示
+            this.rightPanel.style.display = 'block';
+            this.leftPanel.style.verticalAlign = 'top';  // 防止底部间隙
+            this.rightPanel.style.verticalAlign = 'top';
 
             // 清空画布
             this.leftCtx.clearRect(0, 0, panelWidth, panelHeight);
@@ -175,21 +199,37 @@ class MagicWall {
                 ctx.fillRect(
                     x * this.cellSize + 1, 
                     y * this.cellSize + 1, 
-                    this.cellSize - 1,  // 留出1像素的间隔
-                    this.cellSize - 1   // 留出1像素的间隔
+                    this.cellSize - 1,
+                    this.cellSize - 1
                 );
             }
-        }
-
-        // 如果开启提示且是右侧面板，绘制提示
-        if (this.showHints && ctx === this.rightCtx && this.diffPoints) {
-            this.drawHints();
         }
     }
 
     drawPanels() {
+        // 清除之前的动画帧请求
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        
+        // 如果游戏未运行且不是初始化阶段，显示初始图案
+        if (!this.isGameRunning && this.leftColors === null) {
+            this.drawInitialPattern();
+            return;
+        }
+        
         this.drawPanel(this.leftCtx, this.leftColors);
         this.drawPanel(this.rightCtx, this.rightColors);
+        
+        // 如果开启提示，绘制提示
+        if (this.showHints && this.diffPoints) {
+            this.drawHints();
+        }
+        
+        // 如果开启了鼠标跟踪，重新绘制最后的鼠标位置
+        if (this.isMouseTracking && this.lastMousePos) {
+            this.drawMouseTracker(this.lastMousePos.x, this.lastMousePos.y);
+        }
     }
 
     setupEventListeners() {
@@ -214,8 +254,16 @@ class MagicWall {
 
     startGame() {
         // 重置游戏状态
-        this.isGameRunning = true;
+        this.isGameRunning = false;
         this.resetStats();
+        this.cheatClickCount = 0;
+        // 确保提示功能关闭
+        this.showHints = false;
+        // 重置提示按钮状态
+        const hintsCheckbox = document.querySelector('input[type="checkbox"][onclick*="setHints"]');
+        if (hintsCheckbox) {
+            hintsCheckbox.checked = false;
+        }
         
         // 生成新的颜色和差异点
         this.generateColors();
@@ -223,20 +271,23 @@ class MagicWall {
         // 绘制面板
         this.drawPanels();
         
-        // 开始计时
-        this.startTimer();
-        
         console.log('Game started');
-        console.log('Panel dimensions:', this.width, this.height);
-        console.log('Cell size:', this.cellSize);
-        console.log('Diff count:', this.diffCount);
-
         this.playSound('start');
+        
+        // 根据当前模式显示不同的开始提示
+        if (this.isChallengeModeActive) {
+            this.showLevelStartAlert(this.currentLevel);
+        } else if (this.isCustomMode) {
+            // 如果是自定义模式，直接开始游戏
+            this.startTimer();
+            this.isGameRunning = true;
+        }
     }
 
     stopGame() {
         this.isGameRunning = false;
         this.stopTimer();
+        this.isShowingStartAlert = false;
         
         // 清空游戏数据
         this.leftColors = null;
@@ -252,20 +303,26 @@ class MagicWall {
         this.initPanels();
         
         console.log('Game stopped');
+
+        // 只在有完成记录且未显示记录时才显示闯关记录
+        if (this.isChallengeModeActive && 
+            this.levelRecords.some(record => record.completed) &&
+            !this.isShowingRecords) {
+            this.isShowingRecords = true;
+            this.showChallengeRecords();
+        }
     }
 
     resetStats() {
         document.getElementById('errorCount').textContent = '0';
-        document.getElementById('foundCount').textContent = '0';
+        document.getElementById('foundCount').textContent = `0/${this.diffCount}`;
         document.getElementById('timer').textContent = '0.000';
+        this.stopTimer(); // 确保重置时停止已有的计时器
     }
 
     handleClick(e, side) {
-        if (!this.isGameRunning) {
-            console.log('Game is not running');
-            return;
-        }
-
+        if (!this.isGameRunning) return;
+        
         const rect = e.target.getBoundingClientRect();
         const scaleX = this.rightPanel.width / rect.width;
         const scaleY = this.rightPanel.height / rect.height;
@@ -273,112 +330,108 @@ class MagicWall {
         const x = Math.floor(((e.clientX - rect.left) * scaleX) / this.cellSize);
         const y = Math.floor(((e.clientY - rect.top) * scaleY) / this.cellSize);
         
-        if (x < 0 || x >= this.width || y < 0 || y >= this.height) {
-            return;
-        }
+        if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
 
-        if (side === 'right') {
-            const key = `${x},${y}`;
-            if (this.diffPoints && this.diffPoints.has(key)) {
-                this.playSound('correct');
-                console.log('Found difference point!');
-                
-                // 更新颜色和状态
-                this.rightColors[y][x] = this.leftColors[y][x];
-                this.diffPoints.delete(key);
-                
-                const foundCount = this.diffCount - this.diffPoints.size;
-                document.getElementById('foundCount').textContent = foundCount;
-                
-                // 在两边同时播放特效
-                this.createParticles(x, y, this.leftCtx);
-                this.createParticles(x, y, this.rightCtx);
-                
-                // 延迟重绘面板，让特效有时间显示
-                setTimeout(() => {
-                    this.drawPanels();
-                    
-                    if (this.diffPoints.size === 0) {
-                        setTimeout(() => {
-                            this.playSound('complete');
-                            this.gameComplete();
-                        }, 500);
-                    }
-                }, 500);
-                
-            } else {
-                this.playSound('wrong');
-                console.log('Missed difference point');
-                const errorCount = parseInt(document.getElementById('errorCount').textContent) + 1;
-                document.getElementById('errorCount').textContent = errorCount;
-                
-                // 点错时也在两边显示特效，但使用不同的颜色
-                this.createErrorParticles(x, y, this.leftCtx);
-                this.createErrorParticles(x, y, this.rightCtx);
+        const key = `${x},${y}`;
+        if (this.diffPoints && this.diffPoints.has(key)) {
+            // 只在提示开启时记录点击
+            if (this.showHints) {
+                this.cheatClickCount++;
             }
+            
+            this.playSound('correct');
+            console.log('Found difference point!');
+            
+            // 更新颜色和状态
+            this.rightColors[y][x] = this.leftColors[y][x];
+            this.diffPoints.delete(key);
+            
+            const foundCount = this.diffCount - this.diffPoints.size;
+            document.getElementById('foundCount').textContent = `${foundCount}/${this.diffCount}`;
+            
+            // 在两边同时播放特效
+            this.createParticles(x, y, this.leftCtx);
+            this.createParticles(x, y, this.rightCtx);
+            
+            // 延迟重绘面板，让特效有时间显示
+            setTimeout(() => {
+                this.drawPanels();
+                
+                if (this.diffPoints.size === 0) {
+                    setTimeout(() => {
+                        this.playSound('complete');
+                        this.gameComplete();
+                    }, 500);
+                }
+            }, 500);
+            
+        } else {
+            this.playSound('wrong');
+            console.log('Missed difference point');
+            const errorCount = parseInt(document.getElementById('errorCount').textContent) + 1;
+            document.getElementById('errorCount').textContent = errorCount;
+            
+            // 点错时也在两边显示特效，但使用不同的颜色
+            this.createErrorParticles(x, y, this.leftCtx);
+            this.createErrorParticles(x, y, this.rightCtx);
         }
     }
 
     startTimer() {
+        // 清除已有的计时器
+        this.stopTimer();
+        
+        // 记录开始时间
         this.startTime = Date.now();
+        
+        // 设置计时器
         this.timerInterval = setInterval(() => {
-            const elapsed = Date.now() - this.startTime;
-            const seconds = Math.floor(elapsed / 1000);
-            const milliseconds = elapsed % 1000;
-            document.getElementById('timer').textContent = 
-                `${(seconds + milliseconds/1000).toFixed(3)}`;
-        }, 16); // 约60fps的更新频率
+            const currentTime = Date.now();
+            const elapsedTime = (currentTime - this.startTime) / 1000;
+            document.getElementById('timer').textContent = elapsedTime.toFixed(3);
+        }, 50); // 更新频率更高，以显示毫秒
     }
 
     stopTimer() {
-        if(this.timerInterval) {
+        if (this.timerInterval) {
             clearInterval(this.timerInterval);
             this.timerInterval = null;
         }
+        this.startTime = null;
     }
 
     gameComplete() {
-        if (this.isCustomMode) {
+        if (this.isChallengeModeActive) {
+            // 先停止计时
+            this.stopTimer();
+            this.completeLevel();
+        } else {
             // 先更新最后的计数和时间
-            document.getElementById('foundCount').textContent = this.diffCount;
+            document.getElementById('foundCount').textContent = `${this.diffCount}/${this.diffCount}`;
             const totalTime = document.getElementById('timer').textContent;
             const errorCount = document.getElementById('errorCount').textContent;
-            const foundCount = this.diffCount;  // 使用总差异点数量
             
             // 停止游戏和计时器
+            this.stopTimer();
             this.stopGame();
             
-            // 等待一小段时间让界面更新后再显示弹窗
-            setTimeout(() => {
-                // 使用自定义弹窗
-                this.showCustomAlert(`恭喜全部找到！\n差异个数: ${foundCount} 点错次数: ${errorCount}\n总时间: ${totalTime}秒`);
-            }, 50);
-        } else {
-            // 闯关模式下的完成处理
-            const totalTime = document.getElementById('timer').textContent;
-            const errors = document.getElementById('errorCount').textContent;
-            
-            const message = `
-                完成第 ${this.currentLevel + 1} 关！
-                用时：${totalTime}
-                错误次数：${errors}
-                是否继续下一关？
-            `;
-            
-            if (confirm(message)) {
-                this.currentLevel++;
-                if (this.currentLevel < this.challengeLevels.length) {
-                    this.startChallengeMode();
-                } else {
-                    alert('恭喜！你已完成所有关卡！');
-                    this.currentLevel = 0;
-                    this.stopGame();
-                    document.getElementById('challengeModeDialog').style.display = 'none';
-                }
+            // 显示完成提示
+            let message;
+            if (this.cheatClickCount > 0) {
+                message = `哈哈，你作弊了！\n\n` +
+                         `差异个数：${this.diffCount}\n` +
+                         `提示次数：${this.cheatClickCount}\n` +
+                         `总耗时：${totalTime}秒`;
             } else {
-                this.stopGame();
-                document.getElementById('challengeModeDialog').style.display = 'none';
+                message = `恭喜挑战成功！\n\n` +
+                         `差异个数：${this.diffCount}\n` +
+                         `点错次数：${errorCount}\n` +
+                         `总耗时：${totalTime}秒`;
             }
+            
+            setTimeout(() => {
+                this.showCustomAlert(message);
+            }, 50);
         }
     }
 
@@ -419,7 +472,7 @@ class MagicWall {
 
     handleMouseMove(e, side) {
         if (!this.isGameRunning || !this.isMouseTracking) return;
-
+        
         const rect = e.target.getBoundingClientRect();
         const scaleX = this.rightPanel.width / rect.width;
         const scaleY = this.rightPanel.height / rect.height;
@@ -429,24 +482,13 @@ class MagicWall {
         
         // 边界检查
         if (x < 0 || x >= this.width || y < 0 || y >= this.height) return;
-
+        
+        // 保存最后的鼠标位置
+        this.lastMousePos = { x, y };
+        
         // 重新绘制面板
         this.drawPanels();
-
-        // 在两侧面板上显示跟踪效果
-        this.leftCtx.save();
-        this.rightCtx.save();
-
-        // 绘制左侧面板的跟踪效果
-        this.drawCrossHair(x, y, this.leftCtx);
-        this.drawHighlightBox(x, y, this.leftCtx);
-
-        // 绘制右侧面板的跟踪效果
-        this.drawCrossHair(x, y, this.rightCtx);
-        this.drawHighlightBox(x, y, this.rightCtx);
-
-        this.leftCtx.restore();
-        this.rightCtx.restore();
+        this.drawMouseTracker(x, y);
     }
 
     drawCrossHair(x, y, ctx) {
@@ -497,15 +539,48 @@ class MagicWall {
 
     drawHints() {
         this.rightCtx.save();
+        this.leftCtx.save();
         
-        this.diffPoints.forEach(point => {
-            const [x, y] = point.split(',').map(Number);
-            // 同时绘制十字线和高亮框
-            this.drawCrossHair(x, y, this.rightCtx);
-            this.drawHighlightBox(x, y, this.rightCtx);
+        // 获取当前时间用于动画
+        const time = performance.now() / 1000;
+        
+        Array.from(this.diffPoints).forEach(pointStr => {
+            const [x, y] = pointStr.split(',').map(Number);
+            const pixelX = x * this.cellSize;
+            const pixelY = y * this.cellSize;
+            
+            // 设置更粗的边框
+            const borderWidth = 6;
+            const borderAlpha = (Math.sin(time * 5) + 1) / 2; // 0到1之间闪烁
+            
+            // 左边画布 - 白色闪烁边框
+            this.leftCtx.strokeStyle = `rgba(255, 255, 255, ${borderAlpha})`;
+            this.leftCtx.lineWidth = borderWidth;
+            this.leftCtx.strokeRect(
+                pixelX - borderWidth/2,
+                pixelY - borderWidth/2,
+                this.cellSize + borderWidth,
+                this.cellSize + borderWidth
+            );
+            
+            // 右边画布 - 深蓝色闪烁边框
+            this.rightCtx.strokeStyle = `rgba(0, 0, 255, ${Math.min(0.9, borderAlpha + 0.3)})`;
+            this.rightCtx.lineWidth = borderWidth;
+            this.rightCtx.strokeRect(
+                pixelX - borderWidth/2,
+                pixelY - borderWidth/2,
+                this.cellSize + borderWidth,
+                this.cellSize + borderWidth
+            );
         });
         
         this.rightCtx.restore();
+        this.leftCtx.restore();
+        
+        // 请求下一帧动画
+        if (this.showHints) {
+            this.animationFrameId = requestAnimationFrame(() => this.drawPanels());
+        }
     }
 
     initChallengeMode() {
@@ -669,29 +744,32 @@ class MagicWall {
     }
 
     // 添加自定义弹窗函数
-    showCustomAlert(message) {
-        // 创建弹窗容器
-        const alertContainer = document.createElement('div');
-        alertContainer.className = 'custom-alert';
+    showCustomAlert(message, callback = null) {
+        // 如果游戏正在运行，暂停计时
+        const wasRunning = this.isGameRunning;
+        if (wasRunning) {
+            this.stopTimer();
+        }
 
-        // 创建弹窗内容
-        const alertBox = document.createElement('div');
-        alertBox.className = 'custom-alert-content';
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'custom-alert';
+        alertDiv.innerHTML = `
+            <div class="custom-alert-content">
+                <p>${message}</p>
+                <button>OK</button>
+            </div>
+        `;
 
-        // 添加消息内容
-        const messageText = document.createElement('p');
-        messageText.textContent = message;
-
-        // 添加确定按钮
-        const okButton = document.createElement('button');
-        okButton.textContent = 'OK';
-        okButton.onclick = () => document.body.removeChild(alertContainer);
-
-        // 组装弹窗
-        alertBox.appendChild(messageText);
-        alertBox.appendChild(okButton);
-        alertContainer.appendChild(alertBox);
-        document.body.appendChild(alertContainer);
+        // 修改按钮点击事件
+        alertDiv.querySelector('button').onclick = () => {
+            alertDiv.remove();
+            // 如果游戏之前在运行，并且不是游戏结束的弹窗，恢复计时
+            if (wasRunning && !message.includes('恭喜完成') && !message.includes('作弊')) {
+                this.startTimer();
+            }
+            if (callback) callback(); // 如果有回调函数就执行
+        };
+        document.getElementById('gameArea').appendChild(alertDiv);
     }
 
     // 添加绘制初始图案的方法
@@ -1190,6 +1268,232 @@ class MagicWall {
             }
         });
     }
+
+    // 更新闯关模式方法
+    startChallengeLevel() {
+        const currentLevel = CHALLENGE_LEVELS[this.currentLevel - 1];
+        
+        // 设置游戏参数
+        this.width = currentLevel.width;
+        this.height = currentLevel.height;
+        this.cellSize = currentLevel.cellSize;
+        this.diffCount = currentLevel.diffCount;
+        this.timeRemaining = currentLevel.timeLimit;
+        this.cheatClickCount = 0;  // 重置提示点击次数
+        
+        // 初始化面板前先停止当前游戏
+        this.stopGame();
+        
+        // 初始化面板
+        this.initPanels();
+        
+        // 开始游戏
+        this.startGame();
+        
+        // 隐藏对话框
+        document.getElementById('challengeModeDialog').style.display = 'none';
+    }
+
+    // 完成关卡
+    completeLevel() {
+        if (this.isChallengeModeActive) {
+            // 记录当前关卡的完成信息
+            const currentRecord = this.levelRecords[this.currentLevel - 1];
+            currentRecord.completed = true;
+            currentRecord.time = parseFloat(document.getElementById('timer').textContent);
+            currentRecord.errors = parseInt(document.getElementById('errorCount').textContent);
+            currentRecord.cheats = this.cheatClickCount;
+            
+            // 解锁下一关
+            if (this.currentLevel === this.maxUnlockedLevel && 
+                this.currentLevel < CHALLENGE_LEVELS.length) {
+                this.maxUnlockedLevel++;
+            }
+            
+            // 显示完成对话框
+            this.showLevelCompleteDialog();
+        } else {
+            this.gameComplete();
+        }
+    }
+
+    // 显示关卡完成对话框
+    showLevelCompleteDialog() {
+        const totalTime = document.getElementById('timer').textContent;
+        const errorCount = document.getElementById('errorCount').textContent;
+        const nextLevel = this.currentLevel + 1;
+        let message;
+        
+        if (this.currentLevel < CHALLENGE_LEVELS.length) {
+            // 如果不是最后一关，显示当前关卡完成信息和下一关信息
+            message = `恭喜完成第${this.currentLevel}关！\n\n` +
+                     `用时：${totalTime}秒\n` +
+                     `点错次数：${errorCount}\n\n` +
+                     `---------------\n\n` +
+                     `准备进入第${nextLevel}关\n` +
+                     `方块数量：${nextLevel * 10}x${nextLevel * 10}\n` +
+                     `差异点数：${nextLevel}个`;
+             
+            this.showCustomAlert(message, () => {
+                this.currentLevel = nextLevel;
+                // 获取下一关的配置
+                const nextLevelConfig = CHALLENGE_LEVELS[nextLevel - 1];
+                // 更新游戏参数
+                this.width = nextLevelConfig.width;
+                this.height = nextLevelConfig.height;
+                this.cellSize = nextLevelConfig.cellSize;
+                this.diffCount = nextLevelConfig.diffCount;
+                
+                // 重新初始化面板
+                this.initPanels();
+                
+                // 开始新的一关
+                this.isGameRunning = false;
+                this.resetStats();
+                this.generateColors();
+                this.drawPanels();
+                this.playSound('start');
+                this.startTimer();
+                this.isGameRunning = true;
+            });
+        } else {
+            // 如果是最后一关，显示通关提示
+            message = `恭喜完成最后一关！\n\n` +
+                     `用时：${totalTime}秒\n` +
+                     `点错次数：${errorCount}\n\n` +
+                     `---------------\n\n` +
+                     `你已完成所有关卡！`;
+             
+            this.showCustomAlert(message, () => {
+                this.returnToMenu();
+            });
+        }
+    }
+
+    // 下一关
+    nextLevel() {
+        if (this.currentLevel < CHALLENGE_LEVELS.length) {
+            this.currentLevel++;
+            this.startChallengeLevel();
+        } else {
+            alert('恭喜！你已完成所有关卡！');
+            this.returnToMenu();
+        }
+    }
+
+    // 重玩当前关卡
+    retryLevel() {
+        this.startChallengeLevel();
+    }
+
+    // 返回菜单
+    returnToMenu() {
+        this.stopGame();
+        this.isChallengeModeActive = false;
+        this.isShowingRecords = false;
+        this.isShowingStartAlert = false;
+        // 重置关卡记录
+        this.levelRecords = Array(20).fill().map(() => ({
+            completed: false,
+            time: 0,
+            errors: 0,
+            cheats: 0
+        }));
+        document.getElementById('challengeModeDialog').style.display = 'none';
+    }
+
+    gameOver(message) {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+        }
+        alert(message);
+        this.stopGame();
+    }
+
+    // 添加新的方法来显示关卡开始提示
+    showLevelStartAlert(level) {
+        // 如果已经在显示提示，则不再显示
+        if (this.isShowingStartAlert) return;
+        
+        // 设置显示状态为true
+        this.isShowingStartAlert = true;
+        
+        // 确保游戏未开始运行和计时
+        this.isGameRunning = false;
+        this.stopTimer();
+        
+        const message = `准备开始第${level}关！\n\n` +
+                       `方块数量：${level * 10}x${level * 10}\n\n` +
+                       `差异点数：${level}个`;
+        
+        this.showCustomAlert(message, () => {
+            // 点击OK后开始计时和游戏
+            this.resetStats();  // 重置统计信息
+            this.startTimer();
+            this.isGameRunning = true;
+            // 重置显示状态
+            this.isShowingStartAlert = false;
+        });
+    }
+
+    drawMouseTracker(x, y) {
+        // 在两侧面板上显示跟踪效果
+        this.leftCtx.save();
+        this.rightCtx.save();
+        
+        // 绘制左侧面板的跟踪效果
+        this.drawCrossHair(x, y, this.leftCtx);
+        this.drawHighlightBox(x, y, this.leftCtx);
+        
+        // 绘制右侧面板的跟踪效果
+        this.drawCrossHair(x, y, this.rightCtx);
+        this.drawHighlightBox(x, y, this.rightCtx);
+        
+        this.leftCtx.restore();
+        this.rightCtx.restore();
+    }
+
+    // 修改提示功能开关处理
+    setHints(enabled) {
+        if (!this.isGameRunning) return;
+        
+        this.showHints = enabled;
+        this.drawPanels();
+    }
+
+    // 添加显示闯关记录的方法
+    showChallengeRecords() {
+        let message = '闯关模式记录\n\n';
+        
+        // 遍历所有已完成的关卡记录
+        this.levelRecords.forEach((record, index) => {
+            if (record.completed) {
+                message += `第${index + 1}关:  用时 ${record.time.toFixed(3)}秒, 点错 ${record.errors}次`;
+                if (record.cheats > 0) {
+                    message += `, 提示 ${record.cheats}次`;
+                }
+                message += '\n';
+            }
+        });
+        
+        // 计算总计数据
+        const totalTime = this.levelRecords.reduce((sum, record) => sum + (record.completed ? record.time : 0), 0);
+        const totalErrors = this.levelRecords.reduce((sum, record) => sum + (record.completed ? record.errors : 0), 0);
+        const totalCheats = this.levelRecords.reduce((sum, record) => sum + (record.completed ? record.cheats : 0), 0);
+        const completedLevels = this.levelRecords.filter(record => record.completed).length;
+        
+        message += '\n总计\n'; // 总计单独一行
+        message += `完成 ${completedLevels}关\n`;
+        message += `总用时 ${totalTime.toFixed(3)}秒, 总点错 ${totalErrors}次`;
+        if (totalCheats > 0) {
+            message += `, 总提示 ${totalCheats}次\n`;
+        }
+        
+        this.showCustomAlert(message, () => {
+            // 在弹窗关闭后重置显示状态
+            this.isShowingRecords = false;
+        });
+    }
 }
 
 // 初始化游戏
@@ -1207,13 +1511,29 @@ function stopGame() {
 }
 
 function setCustomMode() {
+    // 确保关闭闯关模式
+    window.game.isChallengeModeActive = false;
     window.game.isCustomMode = true;
+    // 重置闯关相关状态
+    window.game.currentLevel = 1;
+    window.game.maxUnlockedLevel = 1;
+    window.game.levelRecords = Array(20).fill().map(() => ({
+        completed: false,
+        time: 0,
+        errors: 0,
+        cheats: 0
+    }));
     document.getElementById('customModeDialog').style.display = 'flex';
 }
 
 function setChallengeMode() {
+    // 确保关闭自定义模式
     window.game.isCustomMode = false;
-    window.game.startChallengeMode();
+    window.game.isChallengeModeActive = true;
+    // 重置游戏状态
+    window.game.stopGame();
+    document.getElementById('challengeModeDialog').style.display = 'block';
+    updateChallengeModeDialog();
 }
 
 function setMouseTracking(enabled) {
@@ -1225,6 +1545,8 @@ function setMouseTracking(enabled) {
 }
 
 function setHints(enabled) {
+    if (!window.game.isGameRunning) return;
+    
     window.game.showHints = enabled;
     window.game.drawPanels();
 }
@@ -1241,8 +1563,6 @@ function closeChallengeDialog() {
     document.getElementById('challengeModeDialog').style.display = 'none';
     // 停止当前游戏
     window.game.stopGame();
-    // 重置关卡
-    window.game.currentLevel = 0;
 }
 
 function saveGame() {
@@ -1251,4 +1571,51 @@ function saveGame() {
 
 function loadGame() {
     window.game.loadGame();
+}
+
+// 关卡配置
+const CHALLENGE_LEVELS = Array.from({ length: 20 }, (_, index) => {
+    const level = index + 1;
+    return {
+        level: level,
+        width: level * 10,  // 从10x10开始，每关增加10
+        height: level * 10,
+        cellSize: Math.max(5, 28 - (level - 1)), // 从28开始，每关减1
+        diffCount: level,   // 从1个开始，每关增加1个差异点
+        unlocked: level === 1 // 初始只解锁第一关
+    };
+});
+
+// 更新闯关模式对话框
+function updateChallengeModeDialog() {
+    const game = window.game;
+    const currentLevel = CHALLENGE_LEVELS[game.currentLevel - 1];
+    if (!currentLevel) return; // 防止未定义错误
+
+    // 更新关卡选择器
+    const levelSelector = document.getElementById('levelSelector');
+    levelSelector.innerHTML = '';
+    
+    CHALLENGE_LEVELS.forEach(level => {
+        const option = document.createElement('option');
+        option.value = level.level;
+        option.textContent = `第${level.level}关 - ${level.width}x${level.width}方块`;
+        if (level.level === game.currentLevel) {
+            option.selected = true;
+        }
+        levelSelector.appendChild(option);
+    });
+}
+
+function selectLevel(level) {
+    window.game.currentLevel = parseInt(level);
+    updateChallengeModeDialog();
+}
+
+// 添加格式化时间的函数
+function formatTime(seconds) {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 } 

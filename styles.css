@@ -107,12 +107,14 @@ body {
     position: relative;
 }
 
-/* 游戏区域样式优化 */
+/* 游戏区域容器 */
 .game-area {
-    width: 90%;
-    max-width: 1800px;
-    min-width: 800px;
-    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    position: relative;
+    width: fit-content;
+    margin: 20px auto;
     padding: 20px;
     background: rgba(255, 255, 255, 0.07);
     backdrop-filter: blur(8px);
@@ -120,11 +122,8 @@ body {
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-    display: flex;
-    justify-content: center;
-    gap: 30px;
     z-index: 1;
-    position: relative;
+    height: fit-content;
 }
 
 .panel {
@@ -208,21 +207,25 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 2000;
+    z-index: 3000;
 }
 
 /* 弹窗内容样式 */
 .modal-content {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.15);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     border-radius: 12px;
     padding: 25px;
-    min-width: 300px;
-    color: rgba(255, 255, 255, 0.9);
+    min-width: 400px;
     text-align: center;
+}
+
+.modal-content h2 {
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 20px;
 }
 
 .form-group {
@@ -248,8 +251,10 @@ body {
 }
 
 .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
     margin-top: 20px;
-    text-align: right;
 }
 
 .button-group button {
@@ -268,13 +273,18 @@ body {
 
 /* 添加到现有样式的末尾 */
 .challenge-info {
-    text-align: left;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     margin: 20px 0;
-    font-size: 16px;
 }
 
 .challenge-info p {
     margin: 10px 0;
+    color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 /* 游戏状态指示器 */
@@ -460,16 +470,15 @@ canvas {
 
 /* 自定义弹窗样式 */
 .custom-alert {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 3000;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    background: rgba(0, 0, 0, 0.7);
+    z-index: 2000;
+    border-radius: 12px;
+    margin-left: -10px;  /* 补偿gap的一半 */
 }
 
 .custom-alert-content {
@@ -480,15 +489,17 @@ canvas {
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
     border-radius: 12px;
     padding: 25px;
-    min-width: 300px;
+    width: 100%;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .custom-alert-content p {
     color: rgba(255, 255, 255, 0.9);
     font-size: 16px;
-    margin: 0 0 20px 0;
+    margin: 0 0 25px 0;
     white-space: pre-line;
+    line-height: 1.5;
 }
 
 .custom-alert-content button {
@@ -541,4 +552,146 @@ h1 {
     .stats {
         min-width: 600px;
     }
+}
+
+/* 闯关模式样式 */
+.level-details {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 5px;
+    margin: 10px 0;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+#levelSelector {
+    padding: 5px;
+    font-size: 16px;
+    width: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+}
+
+#levelSelector option {
+    background: rgba(28, 27, 34, 1);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 8px;
+}
+
+.level-complete {
+    text-align: center;
+}
+
+.level-complete h2 {
+    color: #4CAF50;
+}
+
+/* 确保画布容器也是相对定位 */
+#leftPanel, #rightPanel {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    display: block;
+    line-height: 0;
+}
+
+/* 画布容器包装器 */
+.panels-wrapper {
+    display: flex;
+    gap: 20px;
+    position: relative;
+    line-height: 0;
+}
+
+/* 闯关模式对话框样式 */
+#challengeModeDialog {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(28, 27, 34, 0.75);
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 2000;
+    width: 300px;
+    text-align: center;
+}
+
+#challengeModeDialog h2 {
+    color: #fff;
+    font-size: 20px;
+    margin-bottom: 20px;
+    text-align: center;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+#levelSelector {
+    width: 70%;
+    margin: 15px auto;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 14px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+#levelSelector option {
+    background: rgba(28, 27, 34, 0.9);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 8px;
+}
+
+#challengeModeDialog .button-group {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+#challengeModeDialog button {
+    padding: 10px 25px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, 
+        rgba(147, 112, 219, 0.8),
+        rgba(106, 90, 205, 0.8)
+    );
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+#challengeModeDialog button:hover {
+    background: linear-gradient(135deg,
+        rgba(147, 112, 219, 0.9),
+        rgba(106, 90, 205, 0.9)
+    );
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(147, 112, 219, 0.3);
+}
+
+/* 将弹窗容器移动到游戏区域内 */
+.game-area {
+    position: relative;  /* 确保是相对定位 */
+}
+
+/* 将弹窗移动到game-area内部 */
+#challengeModeDialog {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 } 

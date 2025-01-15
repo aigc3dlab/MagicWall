@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>魔方墙 - Web版</title>
+    <title>魔方墙找茬模拟器</title>
     <link rel="stylesheet" href="styles.css">
     <style>
         /* 添加一些基本样式确保页面正常显示 */
@@ -67,9 +67,22 @@
         </div>
 
         <!-- 游戏区域 -->
-        <div class="game-area">
-            <canvas id="leftPanel" class="panel"></canvas>
-            <canvas id="rightPanel" class="panel"></canvas>
+        <div id="gameArea" class="game-area">
+            <div class="panels-wrapper">
+                <canvas id="leftPanel"></canvas>
+                <canvas id="rightPanel"></canvas>
+            </div>
+            <!-- 闯关模式对话框 -->
+            <div id="challengeModeDialog" style="display: none;">
+                <h2>闯关模式</h2>
+                <select id="levelSelector" onchange="selectLevel(this.value)">
+                    <!-- 关卡选项会通过JavaScript动态生成 -->
+                </select>
+                <div class="button-group">
+                    <button onclick="window.game.startChallengeLevel()">开始游戏</button>
+                    <button onclick="closeChallengeDialog()">返回</button>
+                </div>
+            </div>
         </div>
 
         <!-- 信息统计 -->
@@ -128,20 +141,6 @@
                 <div class="button-group">
                     <button onclick="applyCustomMode()">确 认</button>
                     <button onclick="closeCustomModeDialog()">取 消</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- 闯关模式对话框 -->
-        <div id="challengeModeDialog" class="modal" style="display: none;">
-            <div class="modal-content">
-                <h2>闯关模式</h2>
-                <div class="challenge-info">
-                    <p>当前关卡：<span id="currentLevel">1</span></p>
-                    <p>目标：找出所有差异点</p>
-                </div>
-                <div class="button-group">
-                    <button onclick="closeChallengeDialog()">返回</button>
                 </div>
             </div>
         </div>
