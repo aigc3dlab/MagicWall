@@ -10,7 +10,7 @@ class MagicWall {
             this.currentLevel = 1;
             this.maxUnlockedLevel = 1;
             this.isCustomMode = true;
-            this.isMouseTracking = false;
+            this.isMouseTracking = true;
             this.showHints = false;
             this.cheatClickCount = 0;  // 记录提示下的点击次数
             this.isGameRunning = false;
