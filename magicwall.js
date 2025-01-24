@@ -1327,12 +1327,12 @@ class MagicWall {
         if (this.currentLevel < CHALLENGE_LEVELS.length) {
             // 如果不是最后一关，显示当前关卡完成信息和下一关信息
             message = `恭喜完成第${this.currentLevel}关！\n\n` +
-                     `用时：${totalTime}秒\n` +
-                     `点错次数：${errorCount}\n\n` +
-                     `---------------\n\n` +
-                     `准备进入第${nextLevel}关\n` +
-                     `方块数量：${nextLevel * 10}x${nextLevel * 10}\n` +
-                     `差异点数：${nextLevel}个`;
+                      `用时：${totalTime}秒\n` +
+                      `点错次数：${errorCount}\n\n` +
+                      `---------------\n\n` +
+                      `准备进入第${nextLevel}关\n` +
+                      `方块数量：${nextLevel * 20}x${nextLevel * 20}\n` +
+                      `差异点数：5个`;  // 修改这里，固定显示5个差异点
              
             this.showCustomAlert(message, () => {
                 this.currentLevel = nextLevel;
@@ -1424,7 +1424,7 @@ class MagicWall {
         
         const message = `准备开始第${level}关！\n\n` +
                        `方块数量：${level * 10}x${level * 10}\n\n` +
-                       `差异点数：${level}个`;
+                       `差异点数：5个`;  // 修改这里，固定显示5个差异点
         
         this.showCustomAlert(message, () => {
             // 点击OK后开始计时和游戏
@@ -1578,10 +1578,10 @@ const CHALLENGE_LEVELS = Array.from({ length: 20 }, (_, index) => {
     const level = index + 1;
     return {
         level: level,
-        width: level * 10,  // 从10x10开始，每关增加10
-        height: level * 10,
+        width: level * 20,  // 从20x20开始，每关增加20
+        height: level * 20,
         cellSize: Math.max(5, 28 - (level - 1)), // 从28开始，每关减1
-        diffCount: level,   // 从1个开始，每关增加1个差异点
+        diffCount: 5,   // 固定为5个差异点
         unlocked: level === 1 // 初始只解锁第一关
     };
 });
