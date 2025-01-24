@@ -6,10 +6,10 @@ class MagicWall {
             this.height = 20;     // 高度：20
             this.cellSize = 28;   // 魔方大小：28
             this.diffCount = 5;   // 差异数量：5
-            this.isChallengeModeActive = false;
+            this.isChallengeModeActive = true;
             this.currentLevel = 1;
             this.maxUnlockedLevel = 1;
-            this.isCustomMode = true;
+            this.isCustomMode = false;
             this.isMouseTracking = true;
             this.showHints = false;
             this.cheatClickCount = 0;  // 记录提示下的点击次数
@@ -1423,8 +1423,8 @@ class MagicWall {
         this.stopTimer();
         
         const message = `准备开始第${level}关！\n\n` +
-                       `方块数量：${level * 10}x${level * 10}\n\n` +
-                       `差异点数：5个`;  // 修改这里，固定显示5个差异点
+                       `方块数量：${level * 20}x${level * 20}\n\n` +  // 修改这里，从10改为20
+                       `差异点数：5个`;
         
         this.showCustomAlert(message, () => {
             // 点击OK后开始计时和游戏
@@ -1499,6 +1499,9 @@ class MagicWall {
 // 初始化游戏
 document.addEventListener('DOMContentLoaded', () => {
     window.game = new MagicWall();
+    // 自动显示闯关模式对话框
+    document.getElementById('challengeModeDialog').style.display = 'block';
+    updateChallengeModeDialog();
 });
 
 // 菜单功能实现
